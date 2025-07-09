@@ -13,6 +13,7 @@ import {
   Grid,
   Alert,
   Snackbar,
+  Backdrop, // Import Backdrop for the overlay
 } from '@mui/material';
 import { createTheme, ThemeProvider, useTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline'; // For consistent baseline styles
@@ -305,7 +306,7 @@ function App() {
   // Function to generate the deck guide using Gemini API
   const generateDeckGuide = useCallback(async (cards) => {
     if (!cards || cards.length === 0) {
-      throw new new Error("No card data provided to generate a deck guide.");
+      throw new Error("No card data provided to generate a deck guide.");
     }
 
     // Format the card data into a readable string for the LLM
@@ -427,12 +428,12 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={lightTheme}> {/* Changed to lightTheme */}
-      <CssBaseline /> {/* Applies a CSS reset and background */}
+    <ThemeProvider theme={lightTheme}>
+      <CssBaseline />
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography variant="h4" component="h1" gutterBottom>
-            MTG Deck Guide Generator
+            MTG Deck Strategies
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             Analyze your Magic: The Gathering deck with AI-powered insights.
@@ -459,28 +460,27 @@ function App() {
             value={decklistInput}
             onChange={(e) => setDecklistInput(e.target.value)}
             disabled={loading}
-            // Adjust TextField colors for light background
             sx={{
               mb: 3,
               '& .MuiInputBase-input': {
-                color: theme.palette.text.primary, // Dark text for input
+                color: theme.palette.text.primary,
               },
               '& .MuiInputLabel-root': {
-                color: theme.palette.text.secondary, // Dark label
+                color: theme.palette.text.secondary,
               },
               '& .MuiOutlinedInput-root': {
-                backgroundColor: 'rgba(255, 255, 255, 0.8)', // Almost opaque white for input area
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 '&.Mui-focused': {
                   backgroundColor: 'rgba(255, 255, 255, 0.9)',
                 },
                 '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: `${theme.palette.outline} !important`, // Always visible border
+                  borderColor: `${theme.palette.outline} !important`,
                 },
                 '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: `${theme.palette.primary.main} !important`, // Primary color on hover
+                  borderColor: `${theme.palette.primary.main} !important`,
                 },
                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: `${theme.palette.primary.main} !important`, // Primary color on focus
+                  borderColor: `${theme.palette.primary.main} !important`,
                 },
               },
             }}
@@ -498,28 +498,31 @@ function App() {
           </Button>
         </Paper>
 
-        {/* Progress Message Area */}
-        {loading && currentQuote && ( // Show only if loading and a quote is available
-          <Box
-            sx={{
-              p: 2,
-              mb: 4,
-              backgroundColor: theme.palette.primary.main, // Using primary color for progress background
-              borderRadius: 2,
-              textAlign: 'center',
-              animation: 'pulse 1.5s infinite', // Simple pulse animation
-              '@keyframes pulse': {
-                '0%': { opacity: 1 },
-                '50%': { opacity: 0.7 },
-                '100%': { opacity: 1 },
-              },
-            }}
-          >
-            <Typography variant="body1" color={theme.palette.primary.contrastText} sx={{ fontWeight: 'medium' }}>
+        {/* Loading Overlay */}
+        <Backdrop
+          sx={{
+            color: '#fff',
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)', // Darker, more prominent overlay
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            p: 3, // Add some padding
+          }}
+          open={loading}
+        >
+          <CircularProgress color="inherit" size={60} sx={{ mb: 3 }} />
+          <Typography variant="h5" component="p" color="white" sx={{ mb: 2, fontWeight: 'bold' }}>
+            Summoning Insights...
+          </Typography>
+          {currentQuote && (
+            <Typography variant="h6" component="p" color="white" sx={{ maxWidth: '80%', fontStyle: 'italic' }}>
               {currentQuote}
             </Typography>
-          </Box>
-        )}
+          )}
+        </Backdrop>
 
         {/* Error Snackbar */}
         <Snackbar
