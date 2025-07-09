@@ -1,190 +1,24 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import ReactMarkdown from 'react-markdown'; // For rendering Markdown from Gemini API
-
-// Material UI Imports
-import {
-  Container,
-  TextField,
-  Button,
-  CircularProgress,
-  Typography,
-  Box,
-  Paper,
-  Grid,
-  Alert,
-  Snackbar,
-  Backdrop, // Import Backdrop for the overlay
-} from '@mui/material';
-import { createTheme, ThemeProvider, useTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline'; // For consistent baseline styles
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import ImportContactsIcon from '@mui/icons-material/ImportContacts';
-import MTGLogo from './MTGG.svg';
+import ReactMarkdown from 'react-markdown';
 
 // IMPORTANT: For production, do NOT expose your API key directly in client-side code.
 // Use a backend proxy to secure your API key.
-// Conditional logic for GEMINI_API_KEY to work in both Canvas and local development.
 const GEMINI_API_KEY = typeof __app_id !== 'undefined'
-  ? "" // In Canvas environment, the key is injected automatically when this is an empty string
-  : process.env.REACT_APP_GEMINI_API_KEY; // In local development, read from .env file
-
-// Define a custom Material UI theme using the provided palette
-const lightTheme = createTheme({
-  palette: {
-    mode: 'light', // Set mode to light for appropriate Material Design defaults
-    // Custom Palette based on user's input
-    primary: {
-      main: '#6D696A', // Dark grey for primary actions/elements
-      light: '#A2A7A5', // Medium grey for lighter primary accents
-      dark: '#4D494A',  // Even darker grey for primary dark shades
-      contrastText: '#FFFFFF', // White text on dark primary buttons
-    },
-    secondary: {
-      main: '#A2A7A5', // Medium grey for secondary actions/elements
-      light: '#DAE2DF', // Light grey for secondary accents
-      dark: '#6D696A',  // Dark grey for secondary dark shades
-      contrastText: '#FFFFFF',
-    },
-    background: {
-      default: '#E2DADB', // Lightest grey/off-white for main background
-      paper: '#DAE2DF',   // Slightly darker light grey for cards/surfaces
-    },
-    text: {
-      primary: '#6D696A', // Dark grey for main text on light backgrounds
-      secondary: '#A2A7A5', // Medium grey for secondary text
-    },
-    error: {
-      main: '#F2B8B5', // Error 80 (kept from M3 baseline for clear error indication)
-      contrastText: '#410002',
-    },
-    // Adding M3 specific colors for better adherence (adjusted for light theme)
-    surface: '#DAE2DF', // Matches background.paper
-    onSurface: '#6D696A', // Matches text.primary
-    surfaceVariant: '#A2A7A5', // Medium grey
-    onSurfaceVariant: '#6D696A', // Dark grey
-    outline: '#A2A7A5', // Medium grey for borders
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif', // MUI's default Roboto
-    h4: {
-      fontWeight: 700,
-      color: '#6D696A', // Primary text color for headings
-    },
-    h5: {
-      fontWeight: 600,
-      color: '#6D696A', // Primary text color for headings
-    },
-    h6: {
-      fontWeight: 500,
-      color: '#6D696A', // Primary text color for headings
-    },
-    subtitle1: {
-      color: '#A2A7A5', // Secondary text color
-    },
-    body1: {
-      lineHeight: 1.7,
-      color: '#6D696A', // Primary text color
-    },
-    body2: {
-      lineHeight: 1.6,
-      color: '#A2A7A5', // Secondary text color
-    },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: ({ theme }) => ({
-          borderRadius: 10,
-          textTransform: 'none',
-          fontWeight: 600,
-          padding: '12px 24px',
-          boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.15)', // Lighter shadow for light theme
-          '&:hover': {
-            boxShadow: '0px 6px 14px rgba(0, 0, 0, 0.25)',
-            backgroundColor: theme.palette.primary.light, // Lighter on hover
-          },
-          color: theme.palette.primary.contrastText, // White text on primary button
-          backgroundColor: theme.palette.primary.main,
-        }),
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: ({ theme }) => ({
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 10,
-            backgroundColor: 'rgba(255, 255, 255, 0.8)', // Almost opaque white for input field
-            '&.Mui-focused': {
-              backgroundColor: 'rgba(255, 255, 255, 0.9)', // Slightly more opaque when focused
-            },
-          },
-          '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: `${theme.palette.outline} !important`, // Always visible border using M3 Outline color
-          },
-          '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: `${theme.palette.primary.main} !important`, // Primary color on hover
-          },
-          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: `${theme.palette.primary.main} !important`, // Primary color when focused
-            borderWidth: '2px !important', // Thicker border when focused
-          },
-        }),
-      },
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: ({ theme }) => ({
-          borderRadius: 16,
-          boxShadow: '0px 10px 25px rgba(0, 0, 0, 0.2)', // Lighter shadow for light theme
-          // Apply light grey with glass effect, adjusted for new palette
-          backgroundColor: 'rgba(218, 226, 223, 0.7)', // background.paper with 70% opacity for glass
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          border: `1px solid ${theme.palette.outline}`, // Use M3 Outline color for card borders
-        }),
-      },
-    },
-    MuiAlert: {
-      styleOverrides: {
-        root: ({ theme }) => ({
-          borderRadius: 8,
-          backgroundColor: theme.palette.error.main,
-          color: theme.palette.error.contrastText,
-          fontWeight: 500,
-        }),
-      },
-    },
-    MuiCircularProgress: {
-      styleOverrides: {
-        root: ({ theme }) => ({
-          color: theme.palette.primary.main,
-        }),
-      },
-    },
-  },
-});
+  ? ""
+  : process.env.REACT_APP_GEMINI_API_KEY;
 
 function App() {
-  const theme = useTheme(); // Use the useTheme hook to access the theme object
-
-  // Neue State-Variable für die Navbar
-  const [activeSection, setActiveSection] = useState(null); // null = show hero
-
   const [decklistInput, setDecklistInput] = useState('');
   const [cardData, setCardData] = useState([]);
   const [deckGuide, setDeckGuide] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [snackbarOpen, setSnackbarOpen] = useState(false); // State for Snackbar
-  const [currentQuote, setCurrentQuote] = useState(''); // State for current displayed quote
-  const [shuffledQuotes, setShuffledQuotes] = useState([]); // State for shuffled quotes
-  const quoteIndexRef = useRef(0); // Use ref to persist index across renders without re-triggering effects
+  const [currentQuote, setCurrentQuote] = useState('');
+  const [shuffledQuotes, setShuffledQuotes] = useState([]);
+  const quoteIndexRef = useRef(0);
+  const outputRef = useRef(null); // Ref for scrolling output
 
-  // Array of MTG-related funny/lore quotes (expanded to 20)
+  // Array of MTG-related funny/lore quotes
   const allMtgQuotes = [
     "\"It's not just a game, it's Magic!\" - Probably a planeswalker",
     "\"The stack is a lie.\" - A frustrated storm player",
@@ -222,46 +56,48 @@ function App() {
   useEffect(() => {
     let intervalId;
     if (loading) {
-      // Initialize or re-shuffle quotes if all have been shown
       if (shuffledQuotes.length === 0 || quoteIndexRef.current >= shuffledQuotes.length) {
         const newShuffledQuotes = shuffleArray(allMtgQuotes);
         setShuffledQuotes(newShuffledQuotes);
-        quoteIndexRef.current = 0; // Reset index
-        setCurrentQuote(newShuffledQuotes[0]); // Set initial quote immediately
+        quoteIndexRef.current = 0;
+        setCurrentQuote(newShuffledQuotes[0]);
       } else {
-        // If not a fresh start, just set the current quote from the existing shuffled list
         setCurrentQuote(shuffledQuotes[quoteIndexRef.current]);
       }
 
       intervalId = setInterval(() => {
         quoteIndexRef.current = (quoteIndexRef.current + 1) % shuffledQuotes.length;
         setCurrentQuote(shuffledQuotes[quoteIndexRef.current]);
-      }, 4000); // Change quote every 4 seconds
+      }, 4000);
     } else {
-      clearInterval(intervalId); // Clear interval when not loading
-      setCurrentQuote(''); // Clear quote when loading finishes
+      clearInterval(intervalId);
+      setCurrentQuote('');
     }
 
-    return () => clearInterval(intervalId); // Cleanup on component unmount or loading change
-  }, [loading, shuffledQuotes]); // Depend on loading and shuffledQuotes
+    return () => clearInterval(intervalId);
+  }, [loading, shuffledQuotes]);
+
+  // Scroll to bottom of output when content changes
+  useEffect(() => {
+    if (outputRef.current) {
+      outputRef.current.scrollTop = outputRef.current.scrollHeight;
+    }
+  }, [deckGuide, error, loading]);
 
   // Function to parse the decklist string into an array of { quantity, name, uniqueId } objects
   const parseDecklist = useCallback((decklistString) => {
     const lines = decklistString.trim().split('\n').filter(line => {
-      // Filter out empty lines and lines that do not start with a digit
-      // This prevents warnings for section headers like "Creatures", "Lands", etc.
       return line.trim() !== '' && /^\d/.test(line.trim());
     });
     const parsed = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const match = line.match(/^(\d+)\s+(.*)$/); // Expects "QUANTITY CARD_NAME"
+      const match = line.match(/^(\d+)\s+(.*)$/);
       if (match) {
         const quantity = parseInt(match[1], 10);
         const name = match[2].trim();
         parsed.push({ uniqueId: `${name}-${quantity}-${i}-${crypto.randomUUID()}`, quantity, name });
       }
-      // No 'else' block with console.warn, as these lines are now filtered out
     }
     return parsed;
   }, []);
@@ -275,12 +111,9 @@ function App() {
     for (const item of parsedDeck) {
       try {
         let cardResponse;
-        // First, try an exact search for the card name
         let response = await fetch(`${SCRYFALL_API_BASE_URL}/cards/named?exact=${encodeURIComponent(item.name)}`);
 
         if (!response.ok) {
-          // If exact search fails (e.g., 404 Not Found), try a more general search
-          // This helps with non-English names or slight variations
           response = await fetch(`${SCRYFALL_API_BASE_URL}/cards/search?q=${encodeURIComponent(item.name)}`);
           if (!response.ok) {
             const errorData = await response.json();
@@ -288,7 +121,6 @@ function App() {
           }
           const searchData = await response.json();
           if (searchData.data && searchData.data.length > 0) {
-            // Take the first result from the search
             cardResponse = searchData.data[0];
           } else {
             throw new Error(`No cards found matching "${item.name}" after general search.`);
@@ -297,10 +129,8 @@ function App() {
           cardResponse = await response.json();
         }
         
-        // Attach the original quantity and uniqueId to the fetched card data
         fetchedCards.push({ ...cardResponse, quantity: item.quantity, uniqueDisplayId: item.uniqueId });
-        // Small delay to prevent hitting rate limits too quickly
-        await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+        await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
         console.error(`Error fetching card "${item.name}":`, error);
         errors.push(`Could not find card: "${item.name}". Please check the spelling or try an English name.`);
@@ -319,15 +149,13 @@ function App() {
       throw new Error("No card data provided to generate a deck guide.");
     }
 
-    // Format the card data into a readable string for the LLM
     const decklistFormatted = cards.map(card => {
-      // Safely access properties, provide fallbacks
       const setName = card.set_name ? `(${card.set_name.toUpperCase()})` : '';
       const manaCost = card.mana_cost || 'N/A';
       const typeLine = card.type_line || 'N/A';
       const oracleText = card.oracle_text || 'No Oracle Text';
       return `${card.quantity} ${card.name} ${setName} - Mana: ${manaCost} - Type: ${typeLine}\nOracle Text: ${oracleText}`;
-    }).join('\n\n'); // Use double newline for better readability in prompt
+    }).join('\n\n');
 
     const chatHistory = [];
     const prompt = `
@@ -399,15 +227,11 @@ function App() {
     }
   }, []);
 
-  // Handler for the "Generate Deck Guide" button click
   const handleGenerateGuide = async () => {
     setLoading(true);
     setError(null);
-    setSnackbarOpen(false); // Close any existing snackbar
-    setCardData([]);
-    setDeckGuide('');
-    // Start quote cycling immediately when loading begins
-    // The useEffect hook will handle setting the initial quote and subsequent cycling
+    setDeckGuide(''); // Clear previous guide
+    setCardData([]); // Clear previous card data
 
     try {
       const parsedDeck = parseDecklist(decklistInput);
@@ -420,315 +244,409 @@ function App() {
 
       const guide = await generateDeckGuide(fetchedCards);
       setDeckGuide(guide);
-      setActiveSection('guide'); // Switch to Deck Guide section immediately
+      setDecklistInput(''); // Clear input after successful generation
 
     } catch (err) {
       console.error("Error during guide generation:", err);
       setError(err.message || "An unexpected error occurred.");
-      setSnackbarOpen(true); // Show Snackbar for error
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setSnackbarOpen(false);
+  const handleNewAnalysis = () => {
+    setDecklistInput('');
+    setDeckGuide('');
+    setCardData([]);
+    setError(null);
+    setLoading(false);
   };
 
-  // Show Hero Section by default (on first load) and when no section is selected
-  const showHero = activeSection === null;
-
   return (
-    <ThemeProvider theme={lightTheme}>
-      <CssBaseline />
-      {/* Klassische Material Design Navbar */}
-      <AppBar position="static" color="primary" elevation={2} sx={{ mb: 4 }}>
-        <Toolbar sx={{ minHeight: 64 }}>
-          <MenuBookIcon sx={{ mr: 2, fontSize: 32, color: 'white' }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, color: 'white', fontWeight: 700 }}>
-            MTG Deck Guide
-          </Typography>
-          <Tabs
-            value={activeSection === 'import' ? 0 : activeSection === 'guide' ? 1 : false}
-            onChange={(_, newValue) => {
-              if (newValue === 0) {
-                setActiveSection('import');
-              } else if (newValue === 1) {
-                setActiveSection('guide');
-              }
-            }}
-            textColor="inherit"
-            indicatorColor="secondary"
-            sx={{ minHeight: 64 }}
+    <div style={styles.appContainer}>
+      <div style={styles.terminalWindow}>
+        <div style={styles.terminalHeader}>
+          <span style={styles.terminalDot}></span>
+          <span className="terminal-dot-yellow"></span> {/* Use class for yellow dot */}
+          <span className="terminal-dot-green"></span> {/* Use class for green dot */}
+        </div>
+        <div style={styles.terminalBody} ref={outputRef}>
+          <p style={styles.terminalLine}>
+            <span style={styles.prompt}>user@mtg-strat:~$&nbsp;</span>
+            <span style={styles.cursor}></span>
+          </p>
+          <p style={styles.terminalLine}>Welcome to MTG Deck Strategies Console!</p>
+          <p style={styles.terminalLine}>Enter your decklist below and press 'Generate Guide' to get insights.</p>
+          <p style={styles.terminalLine}>Format: "Quantity Card Name" (e.g., 4 Lightning Bolt)</p>
+          <br />
+          <textarea
+            style={styles.textarea}
+            value={decklistInput}
+            onChange={(e) => setDecklistInput(e.target.value)}
+            disabled={loading}
+            placeholder="Enter decklist here..."
+            rows={10}
+          />
+          <br />
+          <button
+            style={styles.button}
+            onClick={handleGenerateGuide}
+            disabled={loading || !decklistInput.trim()}
           >
-            <Tab
-              icon={<ImportContactsIcon />}
-              iconPosition="start"
-              label="Import Deck"
-              sx={{ color: 'white', fontWeight: 600, minHeight: 64 }}
-              aria-selected={activeSection === 'import'}
-            />
-            <Tab
-              icon={<MenuBookIcon />}
-              iconPosition="start"
-              label="Deck Guide"
-              sx={{ color: 'white', fontWeight: 600, minHeight: 64 }}
-              aria-selected={activeSection === 'guide'}
-            />
-          </Tabs>
-        </Toolbar>
-      </AppBar>
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        {/* Hero Section */}
-        {showHero && (
-          <Box sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '60vh',
-            textAlign: 'center',
-            mb: 6,
-          }}>
-            <Box
-              component="img"
-              src={MTGLogo}
-              alt="Magic: The Gathering Logo"
-              sx={{
-                width: { xs: 180, sm: 240 },
-                height: 'auto',
-                mb: 4,
-                filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.18))',
-              }}
-            />
-            <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main', mb: 2 }}>
-              Welcome to MTG Deck Guide
-            </Typography>
-            <Typography variant="h5" sx={{ color: 'text.secondary', mb: 3 }}>
-              Analyze and optimize your Magic: The Gathering deck with AI-powered strategies.
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 500, mx: 'auto' }}>
-              Start by importing your deck or let the app generate a personalized guide for you. Happy brewing!
-            </Typography>
-          </Box>
-        )}
-        {/* Deck Input Section */}
-        {activeSection === 'import' && (
-          <Paper elevation={6} sx={{ p: { xs: 3, sm: 4 }, mb: 4 }}>
-            <Typography variant="h6" gutterBottom color="text.primary">
-              Enter Your Decklist
-            </Typography>
-            <TextField
-              id="decklist"
-              label="Decklist"
-              multiline
-              rows={10}
-              fullWidth
-              variant="outlined"
-              placeholder={`Example:
-4 Lightning Bolt
-4 Goblin Guide
-18 Mountain
-1 Sol Ring (Commander)`}
-              value={decklistInput}
-              onChange={(e) => setDecklistInput(e.target.value)}
-              disabled={loading}
-              sx={{
-                mb: 3,
-                '& .MuiInputBase-input': {
-                  color: theme.palette.text.primary,
-                },
-                '& .MuiInputLabel-root': {
-                  color: theme.palette.text.secondary,
-                },
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                  '&.Mui-focused': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                  },
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: `${theme.palette.outline} !important`,
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: `${theme.palette.primary.main} !important`,
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: `${theme.palette.primary.main} !important`,
-                  },
-                },
-              }}
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              size="large"
-              onClick={handleGenerateGuide}
-              disabled={loading || !decklistInput.trim()}
-              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-            >
-              {loading ? 'Generating...' : 'Generate Deck Guide'}
-            </Button>
-          </Paper>
-        )}
-        {/* Deck Guide Display Section */}
-        {activeSection === 'guide' && (
-          deckGuide ? (
-            <Paper elevation={6} sx={{ p: { xs: 3, sm: 4 }, mt: 4 }}>
-              <Typography variant="h5" component="h2" sx={{ mb: 3, textAlign: 'center' }}>
-                Deck Guide Analysis
-              </Typography>
-              <Box sx={{ typography: 'body1', lineHeight: 1.7, color: 'text.primary' }}>
+            {loading ? (
+              <>
+                Generating
+                <span className="loading-dot" style={{ animationDelay: '0s' }}>.</span>
+                <span className="loading-dot" style={{ animationDelay: '0.2s' }}>.</span>
+                <span className="loading-dot" style={{ animationDelay: '0.4s' }}>.</span>
+              </>
+            ) : (
+              'Generate Guide'
+            )}
+          </button>
+
+          {loading && (
+            <p style={styles.terminalLine}>
+              <span style={styles.loadingQuote}>{currentQuote}</span>
+            </p>
+          )}
+
+          {error && (
+            <>
+              <p style={styles.terminalLine}>
+                <span style={styles.errorText}>Error: {error}</span>
+              </p>
+              <button style={styles.button} onClick={handleNewAnalysis}>
+                Start New Analysis
+              </button>
+            </>
+          )}
+
+          {deckGuide && (
+            <>
+              <p style={styles.terminalLine}>
+                <span style={styles.successText}>Deck Guide Generated:</span>
+              </p>
+              <div style={styles.deckGuideOutput}>
                 <ReactMarkdown
                   components={{
-                    h1: ({node, ...props}) => <Typography variant="h5" sx={{ mt: 4, mb: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 1, color: theme.palette.text.primary }} {...props} />, 
-                    h2: ({node, ...props}) => <Typography variant="h6" sx={{ mt: 3, mb: 1.5, color: theme.palette.text.primary }} {...props} />, 
-                    h3: ({node, ...props}) => <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 'bold', color: theme.palette.text.primary }} {...props} />, 
-                    p: ({node, ...props}) => <Typography variant="body1" sx={{ mb: 2, color: theme.palette.text.primary }} {...props} />, 
-                    ul: ({node, ...props}) => <Box component="ul" sx={{ pl: 3, mb: 2, '& li': { mb: 0.5, color: theme.palette.text.primary } }} {...props} />, 
-                    ol: ({node, ...props}) => <Box component="ol" sx={{ pl: 3, mb: 2, '& li': { mb: 0.5, color: theme.palette.text.primary } }} {...props} />, 
-                    li: ({node, ...props}) => <Typography variant="body2" component="li" {...props} />, 
-                    strong: ({node, ...props}) => <Box component="strong" sx={{ color: theme.palette.text.primary }} {...props} />, 
-                    em: ({node, ...props}) => <Box component="em" sx={{ fontStyle: 'italic', color: theme.palette.text.secondary }} {...props} />, 
-                    a: ({node, ...props}) => <a style={{ color: theme.palette.primary.main, textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />, 
+                    h1: ({node, ...props}) => <h2 style={styles.markdownH2} {...props} />,
+                    h2: ({node, ...props}) => <h3 style={styles.markdownH3} {...props} />,
+                    h3: ({node, ...props}) => <h4 style={styles.markdownH4} {...props} />,
+                    p: ({node, ...props}) => <p style={styles.markdownP} {...props} />,
+                    ul: ({node, ...props}) => <ul style={styles.markdownUl} {...props} />,
+                    ol: ({node, ...props}) => <ol style={styles.markdownOl} {...props} />,
+                    li: ({node, ...props}) => <li style={styles.markdownLi} {...props} />,
+                    strong: ({node, ...props}) => <strong style={styles.markdownStrong} {...props} />,
+                    em: ({node, ...props}) => <em style={styles.markdownEm} {...props} />,
+                    a: ({node, ...props}) => <a style={styles.markdownLink} target="_blank" rel="noopener noreferrer" {...props} />,
                     code: ({node, inline, className, children, ...props}) => {
                       return (
-                        <Box component="code" sx={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                          color: theme.palette.primary.main,
-                          px: 0.5,
-                          py: 0.2,
-                          borderRadius: 1,
-                          fontSize: '0.85em',
-                        }} {...props}>
+                        <code style={styles.markdownCode} {...props}>
                           {children}
-                        </Box>
+                        </code>
                       );
                     }
                   }}
                 >
                   {deckGuide}
                 </ReactMarkdown>
-              </Box>
-              {/* Cards in Deck Display */}
+              </div>
+              <br />
+              {/* Display card images if available */}
               {cardData.length > 0 && (
-                <Box sx={{ mt: 6 }}>
-                  <Typography variant="h5" component="h3" sx={{ mb: 3, textAlign: 'center' }}>
-                    Cards in Deck
-                  </Typography>
-                  <Grid container spacing={2} justifyContent="center">
+                <>
+                  <p style={styles.terminalLine}>
+                    <span style={styles.successText}>Cards in Deck:</span>
+                  </p>
+                  <div style={styles.cardGrid}>
                     {cardData.map((card) => (
-                      <Grid item xs={12} sm={6} md={4} key={card.uniqueDisplayId}>
-                        <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
-                          {card.image_uris?.small ? (
-                            <Box
-                              component="img"
-                              src={card.image_uris.small}
-                              alt={card.name}
-                              sx={{
-                                width: '100%',
-                                maxWidth: 120,
-                                height: 'auto',
-                                borderRadius: 1,
-                                mb: 1.5,
-                                objectFit: 'contain',
-                              }}
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                // Safely get hex values for placeholder image using theme palette
-                                const bgColor = theme.palette.background.paper.replace('#', '');
-                                const textColor = theme.palette.text.secondary.replace('#', '');
-                                e.target.src = `https://placehold.co/120x168/${bgColor}/${textColor}?text=No+Image`;
-                              }}
-                            />
-                          ) : (
-                            <Box
-                              sx={{
-                                width: '100%',
-                                maxWidth: 120,
-                                height: 168,
-                                backgroundColor: theme.palette.background.paper,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: theme.palette.text.secondary,
-                                fontSize: '0.75rem',
-                                textAlign: 'center',
-                                borderRadius: 1,
-                                mb: 1.5,
-                              }}
-                            >
-                              No Image Available
-                            </Box>
-                          )}
-                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
-                            {card.quantity}x {card.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Mana: {card.mana_cost || 'N/A'}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Type: {card.type_line || 'N/A'}
-                          </Typography>
-                        </Paper>
-                      </Grid>
+                      <div key={card.uniqueDisplayId} style={styles.cardItem}>
+                        {card.image_uris?.small ? (
+                          <img
+                            src={card.image_uris.small}
+                            alt={card.name}
+                            style={styles.cardImage}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = `https://placehold.co/120x168/282c34/61dafb?text=No+Image`; // Placeholder for console theme
+                            }}
+                          />
+                        ) : (
+                          <div style={{ ...styles.cardImage, ...styles.cardPlaceholder }}>
+                            No Image
+                          </div>
+                        )}
+                        <span style={styles.cardText}>{card.quantity}x {card.name}</span>
+                        <span style={styles.cardTextSmall}>Mana: {card.mana_cost || 'N/A'}</span>
+                        <span style={styles.cardTextSmall}>Type: {card.type_line || 'N/A'}</span>
+                      </div>
                     ))}
-                  </Grid>
-                </Box>
+                  </div>
+                  <br />
+                </>
               )}
-            </Paper>
-          ) : (
-            <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 }, mt: 4, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary">
-                No deck guide generated yet. Please import a deck and generate a guide first.
-              </Typography>
-            </Paper>
-          )
-        )}
-
-        {/* Loading Overlay */}
-        <Backdrop
-          sx={{
-            color: '#fff',
-            zIndex: (theme) => theme.zIndex.drawer + 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            p: 3,
-          }}
-          open={loading}
-        >
-          <CircularProgress color="inherit" size={60} sx={{ mb: 3 }} />
-          <Typography variant="h5" component="p" color="white" sx={{ mb: 2, fontWeight: 'bold' }}>
-            Summoning Insights...
-          </Typography>
-          {currentQuote && (
-            <Typography variant="h6" component="p" color="white" sx={{ maxWidth: '80%', fontStyle: 'italic' }}>
-              {currentQuote}
-            </Typography>
+              <button style={styles.button} onClick={handleNewAnalysis}>
+                Start New Analysis
+              </button>
+            </>
           )}
-        </Backdrop>
-
-        {/* Error Snackbar */}
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={6000}
-          onClose={handleSnackbarClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert onClose={handleSnackbarClose} severity="error" sx={{ width: '100%' }}>
-            {error}
-          </Alert>
-        </Snackbar>
-      </Container>
-    </ThemeProvider>
+        </div>
+      </div>
+    </div>
   );
 }
+
+const styles = {
+  appContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start', // Align to top
+    minHeight: '100vh',
+    backgroundColor: '#282c34', // Dark background for the whole page
+    padding: '20px',
+    boxSizing: 'border-box',
+  },
+  terminalWindow: {
+    width: '100%',
+    maxWidth: '800px', // Max width for desktop
+    backgroundColor: '#1a1a1a', // Even darker for terminal window
+    borderRadius: '8px',
+    boxShadow: '0 0 20px rgba(0, 255, 0, 0.3)', // Green glow
+    overflow: 'hidden',
+    border: '1px solid #00ff00', // Green border
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: 'calc(100vh - 40px)', // Fill height minus padding
+  },
+  terminalHeader: {
+    backgroundColor: '#333',
+    padding: '8px 15px',
+    display: 'flex',
+    alignItems: 'center',
+    borderBottom: '1px solid #00ff00',
+  },
+  terminalDot: {
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%',
+    backgroundColor: '#ff5f56', // Red
+    marginRight: '8px',
+  },
+  terminalBody: {
+    flexGrow: 1,
+    padding: '20px',
+    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: '1rem',
+    color: '#00ff00', // Green text for terminal
+    whiteSpace: 'pre-wrap', // Preserve whitespace and wrap text
+    wordBreak: 'break-word', // Break long words
+    overflowY: 'auto', // Enable scrolling for content overflow
+  },
+  terminalLine: {
+    margin: '0',
+    lineHeight: '1.5',
+  },
+  prompt: {
+    color: '#00ff00', // Green for prompt
+  },
+  cursor: {
+    display: 'inline-block',
+    width: '8px',
+    height: '1em',
+    backgroundColor: '#00ff00',
+    verticalAlign: 'middle',
+    animation: 'blink 1s infinite',
+  },
+  textarea: {
+    width: 'calc(100% - 20px)', // Adjust for padding
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Slightly transparent black
+    border: '1px solid #00ff00',
+    color: '#00ff00',
+    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: '1rem',
+    padding: '10px',
+    boxSizing: 'border-box',
+    resize: 'vertical', // Allow vertical resizing
+    marginTop: '10px',
+    marginBottom: '10px',
+  },
+  button: {
+    backgroundColor: '#008000', // Darker green for button
+    color: '#ffffff',
+    border: '1px solid #00ff00',
+    padding: '10px 20px',
+    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: '1rem',
+    cursor: 'pointer',
+    marginTop: '10px',
+    marginBottom: '10px',
+    borderRadius: '5px',
+    transition: 'background-color 0.3s, box-shadow 0.3s',
+    '&:hover': {
+      backgroundColor: '#00b300', // Lighter green on hover
+      boxShadow: '0 0 10px rgba(0, 255, 0, 0.5)',
+    },
+    '&:disabled': {
+      backgroundColor: '#333',
+      color: '#666',
+      borderColor: '#333',
+      cursor: 'not-allowed',
+    },
+  },
+  loadingText: {
+    color: '#ffdd00', // Amber for loading text
+  },
+  loadingQuote: {
+    color: '#ffdd00', // Amber for loading quotes
+    fontStyle: 'italic',
+  },
+  errorText: {
+    color: '#ff0000', // Red for errors
+    fontWeight: 'bold',
+  },
+  successText: {
+    color: '#00ff00', // Green for success messages
+    fontWeight: 'bold',
+  },
+  deckGuideOutput: {
+    marginTop: '20px',
+    borderTop: '1px dashed #00ff00', // Dashed green line
+    paddingTop: '20px',
+    color: '#00ff00', // Ensure guide text is green
+  },
+  markdownH2: {
+    color: '#00ff00', // Green for headings
+    fontSize: '1.4rem',
+    marginTop: '1.5rem',
+    marginBottom: '0.8rem',
+    borderBottom: '1px solid #00ff00',
+    paddingBottom: '0.5rem',
+  },
+  markdownH3: {
+    color: '#00ff00', // Green for subheadings
+    fontSize: '1.2rem',
+    marginTop: '1.2rem',
+    marginBottom: '0.6rem',
+  },
+  markdownH4: {
+    color: '#00ff00', // Green for sub-subheadings
+    fontSize: '1.1rem',
+    marginTop: '1rem',
+    marginBottom: '0.5rem',
+  },
+  markdownP: {
+    color: '#00ff00', // Green for paragraphs
+    marginBottom: '1rem',
+  },
+  markdownUl: {
+    listStyleType: 'disc',
+    marginLeft: '20px',
+    marginBottom: '1rem',
+  },
+  markdownOl: {
+    listStyleType: 'decimal',
+    marginLeft: '20px',
+    marginBottom: '1rem',
+  },
+  markdownLi: {
+    color: '#00ff00', // Green for list items
+    marginBottom: '0.4rem',
+  },
+  markdownStrong: {
+    color: '#ffdd00', // Amber for strong text
+    fontWeight: 'bold',
+  },
+  markdownEm: {
+    color: '#ffdd00', // Amber for emphasized text
+    fontStyle: 'italic',
+  },
+  markdownLink: {
+    color: '#61dafb', // Blue for links, like a typical terminal link
+    textDecoration: 'underline',
+  },
+  markdownCode: {
+    backgroundColor: 'rgba(0, 255, 0, 0.1)', // Light green background for inline code
+    color: '#00ff00', // Green text for code
+    padding: '2px 4px',
+    borderRadius: '3px',
+  },
+  cardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', // Responsive grid
+    gap: '15px',
+    marginTop: '20px',
+    justifyItems: 'center',
+  },
+  cardItem: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Slightly transparent darker background for cards
+    border: '1px solid #00ff00',
+    borderRadius: '5px',
+    padding: '10px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    color: '#00ff00',
+  },
+  cardImage: {
+    width: '100%',
+    maxWidth: '120px',
+    height: 'auto',
+    borderRadius: '3px',
+    marginBottom: '8px',
+    border: '1px solid #00ff00',
+  },
+  cardPlaceholder: {
+    width: '120px',
+    height: '168px', // Standard card aspect ratio
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+    color: '#00ff00',
+    fontSize: '0.8rem',
+    marginBottom: '8px',
+    borderRadius: '3px',
+    border: '1px dashed #00ff00',
+  },
+  cardText: {
+    fontSize: '0.9rem',
+    fontWeight: 'bold',
+    marginBottom: '4px',
+  },
+  cardTextSmall: {
+    fontSize: '0.8rem',
+    color: '#00cc00', // Slightly darker green for secondary info
+  },
+};
+
+// Inject keyframes and pseudo-class styles into a style tag
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = `
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  @keyframes dot-fade {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+  .terminal-dot-yellow {
+    background-color: #ffbd2e; /* Yellow */
+  }
+  .terminal-dot-green {
+    background-color: #27c93f; /* Green */
+  }
+  .loading-dot {
+    animation: dot-fade 1.5s infinite;
+    display: inline-block; /* Ensure dots are on the same line */
+    margin-left: 2px; /* Small spacing between dots */
+    color: #ffdd00; /* Amber color for dots */
+  }
+`;
+document.head.appendChild(styleSheet);
+
 
 export default App;
