@@ -17,6 +17,13 @@ import {
 } from '@mui/material';
 import { createTheme, ThemeProvider, useTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline'; // For consistent baseline styles
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import ImportContactsIcon from '@mui/icons-material/ImportContacts';
+import MTGLogo from './MTGG.svg';
 
 // IMPORTANT: For production, do NOT expose your API key directly in client-side code.
 // Use a backend proxy to secure your API key.
@@ -163,6 +170,9 @@ const lightTheme = createTheme({
 
 function App() {
   const theme = useTheme(); // Use the useTheme hook to access the theme object
+
+  // Neue State-Variable für die Navbar
+  const [activeSection, setActiveSection] = useState(null); // null = show hero
 
   const [decklistInput, setDecklistInput] = useState('');
   const [cardData, setCardData] = useState([]);
@@ -410,6 +420,7 @@ function App() {
 
       const guide = await generateDeckGuide(fetchedCards);
       setDeckGuide(guide);
+      setActiveSection('guide'); // Switch to Deck Guide section immediately
 
     } catch (err) {
       console.error("Error during guide generation:", err);
@@ -427,89 +438,269 @@ function App() {
     setSnackbarOpen(false);
   };
 
+  // Show Hero Section by default (on first load) and when no section is selected
+  const showHero = activeSection === null;
+
   return (
     <ThemeProvider theme={lightTheme}>
       <CssBaseline />
+      {/* Klassische Material Design Navbar */}
+      <AppBar position="static" color="primary" elevation={2} sx={{ mb: 4 }}>
+        <Toolbar sx={{ minHeight: 64 }}>
+          <MenuBookIcon sx={{ mr: 2, fontSize: 32, color: 'white' }} />
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1, color: 'white', fontWeight: 700 }}>
+            MTG Deck Guide
+          </Typography>
+          <Tabs
+            value={activeSection === 'import' ? 0 : activeSection === 'guide' ? 1 : false}
+            onChange={(_, newValue) => {
+              if (newValue === 0) {
+                setActiveSection('import');
+              } else if (newValue === 1) {
+                setActiveSection('guide');
+              }
+            }}
+            textColor="inherit"
+            indicatorColor="secondary"
+            sx={{ minHeight: 64 }}
+          >
+            <Tab
+              icon={<ImportContactsIcon />}
+              iconPosition="start"
+              label="Import Deck"
+              sx={{ color: 'white', fontWeight: 600, minHeight: 64 }}
+              aria-selected={activeSection === 'import'}
+            />
+            <Tab
+              icon={<MenuBookIcon />}
+              iconPosition="start"
+              label="Deck Guide"
+              sx={{ color: 'white', fontWeight: 600, minHeight: 64 }}
+              aria-selected={activeSection === 'guide'}
+            />
+          </Tabs>
+        </Toolbar>
+      </AppBar>
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            MTG Deck Strategies
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Analyze your Magic: The Gathering deck with AI-powered insights.
-          </Typography>
-        </Box>
-
+        {/* Hero Section */}
+        {showHero && (
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '60vh',
+            textAlign: 'center',
+            mb: 6,
+          }}>
+            <Box
+              component="img"
+              src={MTGLogo}
+              alt="Magic: The Gathering Logo"
+              sx={{
+                width: { xs: 180, sm: 240 },
+                height: 'auto',
+                mb: 4,
+                filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.18))',
+              }}
+            />
+            <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main', mb: 2 }}>
+              Welcome to MTG Deck Guide
+            </Typography>
+            <Typography variant="h5" sx={{ color: 'text.secondary', mb: 3 }}>
+              Analyze and optimize your Magic: The Gathering deck with AI-powered strategies.
+            </Typography>
+            <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 500, mx: 'auto' }}>
+              Start by importing your deck or let the app generate a personalized guide for you. Happy brewing!
+            </Typography>
+          </Box>
+        )}
         {/* Deck Input Section */}
-        <Paper elevation={6} sx={{ p: { xs: 3, sm: 4 }, mb: 4 }}>
-          <Typography variant="h6" gutterBottom color="text.primary">
-            Enter Your Decklist
-          </Typography>
-          <TextField
-            id="decklist"
-            label="Decklist"
-            multiline
-            rows={10}
-            fullWidth
-            variant="outlined"
-            placeholder="Example:
+        {activeSection === 'import' && (
+          <Paper elevation={6} sx={{ p: { xs: 3, sm: 4 }, mb: 4 }}>
+            <Typography variant="h6" gutterBottom color="text.primary">
+              Enter Your Decklist
+            </Typography>
+            <TextField
+              id="decklist"
+              label="Decklist"
+              multiline
+              rows={10}
+              fullWidth
+              variant="outlined"
+              placeholder={`Example:
 4 Lightning Bolt
 4 Goblin Guide
 18 Mountain
-1 Sol Ring (Commander)"
-            value={decklistInput}
-            onChange={(e) => setDecklistInput(e.target.value)}
-            disabled={loading}
-            sx={{
-              mb: 3,
-              '& .MuiInputBase-input': {
-                color: theme.palette.text.primary,
-              },
-              '& .MuiInputLabel-root': {
-                color: theme.palette.text.secondary,
-              },
-              '& .MuiOutlinedInput-root': {
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                '&.Mui-focused': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+1 Sol Ring (Commander)`}
+              value={decklistInput}
+              onChange={(e) => setDecklistInput(e.target.value)}
+              disabled={loading}
+              sx={{
+                mb: 3,
+                '& .MuiInputBase-input': {
+                  color: theme.palette.text.primary,
                 },
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: `${theme.palette.outline} !important`,
+                '& .MuiInputLabel-root': {
+                  color: theme.palette.text.secondary,
                 },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: `${theme.palette.primary.main} !important`,
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  '&.Mui-focused': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  },
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: `${theme.palette.outline} !important`,
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: `${theme.palette.primary.main} !important`,
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: `${theme.palette.primary.main} !important`,
+                  },
                 },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: `${theme.palette.primary.main} !important`,
-                },
-              },
-            }}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            size="large"
-            onClick={handleGenerateGuide}
-            disabled={loading || !decklistInput.trim()}
-            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-          >
-            {loading ? 'Generating...' : 'Generate Deck Guide'}
-          </Button>
-        </Paper>
+              }}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              size="large"
+              onClick={handleGenerateGuide}
+              disabled={loading || !decklistInput.trim()}
+              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+            >
+              {loading ? 'Generating...' : 'Generate Deck Guide'}
+            </Button>
+          </Paper>
+        )}
+        {/* Deck Guide Display Section */}
+        {activeSection === 'guide' && (
+          deckGuide ? (
+            <Paper elevation={6} sx={{ p: { xs: 3, sm: 4 }, mt: 4 }}>
+              <Typography variant="h5" component="h2" sx={{ mb: 3, textAlign: 'center' }}>
+                Deck Guide Analysis
+              </Typography>
+              <Box sx={{ typography: 'body1', lineHeight: 1.7, color: 'text.primary' }}>
+                <ReactMarkdown
+                  components={{
+                    h1: ({node, ...props}) => <Typography variant="h5" sx={{ mt: 4, mb: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 1, color: theme.palette.text.primary }} {...props} />, 
+                    h2: ({node, ...props}) => <Typography variant="h6" sx={{ mt: 3, mb: 1.5, color: theme.palette.text.primary }} {...props} />, 
+                    h3: ({node, ...props}) => <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 'bold', color: theme.palette.text.primary }} {...props} />, 
+                    p: ({node, ...props}) => <Typography variant="body1" sx={{ mb: 2, color: theme.palette.text.primary }} {...props} />, 
+                    ul: ({node, ...props}) => <Box component="ul" sx={{ pl: 3, mb: 2, '& li': { mb: 0.5, color: theme.palette.text.primary } }} {...props} />, 
+                    ol: ({node, ...props}) => <Box component="ol" sx={{ pl: 3, mb: 2, '& li': { mb: 0.5, color: theme.palette.text.primary } }} {...props} />, 
+                    li: ({node, ...props}) => <Typography variant="body2" component="li" {...props} />, 
+                    strong: ({node, ...props}) => <Box component="strong" sx={{ color: theme.palette.text.primary }} {...props} />, 
+                    em: ({node, ...props}) => <Box component="em" sx={{ fontStyle: 'italic', color: theme.palette.text.secondary }} {...props} />, 
+                    a: ({node, ...props}) => <a style={{ color: theme.palette.primary.main, textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />, 
+                    code: ({node, inline, className, children, ...props}) => {
+                      return (
+                        <Box component="code" sx={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                          color: theme.palette.primary.main,
+                          px: 0.5,
+                          py: 0.2,
+                          borderRadius: 1,
+                          fontSize: '0.85em',
+                        }} {...props}>
+                          {children}
+                        </Box>
+                      );
+                    }
+                  }}
+                >
+                  {deckGuide}
+                </ReactMarkdown>
+              </Box>
+              {/* Cards in Deck Display */}
+              {cardData.length > 0 && (
+                <Box sx={{ mt: 6 }}>
+                  <Typography variant="h5" component="h3" sx={{ mb: 3, textAlign: 'center' }}>
+                    Cards in Deck
+                  </Typography>
+                  <Grid container spacing={2} justifyContent="center">
+                    {cardData.map((card) => (
+                      <Grid item xs={12} sm={6} md={4} key={card.uniqueDisplayId}>
+                        <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
+                          {card.image_uris?.small ? (
+                            <Box
+                              component="img"
+                              src={card.image_uris.small}
+                              alt={card.name}
+                              sx={{
+                                width: '100%',
+                                maxWidth: 120,
+                                height: 'auto',
+                                borderRadius: 1,
+                                mb: 1.5,
+                                objectFit: 'contain',
+                              }}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                // Safely get hex values for placeholder image using theme palette
+                                const bgColor = theme.palette.background.paper.replace('#', '');
+                                const textColor = theme.palette.text.secondary.replace('#', '');
+                                e.target.src = `https://placehold.co/120x168/${bgColor}/${textColor}?text=No+Image`;
+                              }}
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                width: '100%',
+                                maxWidth: 120,
+                                height: 168,
+                                backgroundColor: theme.palette.background.paper,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: theme.palette.text.secondary,
+                                fontSize: '0.75rem',
+                                textAlign: 'center',
+                                borderRadius: 1,
+                                mb: 1.5,
+                              }}
+                            >
+                              No Image Available
+                            </Box>
+                          )}
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                            {card.quantity}x {card.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Mana: {card.mana_cost || 'N/A'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Type: {card.type_line || 'N/A'}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              )}
+            </Paper>
+          ) : (
+            <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 }, mt: 4, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary">
+                No deck guide generated yet. Please import a deck and generate a guide first.
+              </Typography>
+            </Paper>
+          )
+        )}
 
         {/* Loading Overlay */}
         <Backdrop
           sx={{
             color: '#fff',
             zIndex: (theme) => theme.zIndex.drawer + 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)', // Darker, more prominent overlay
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             textAlign: 'center',
-            p: 3, // Add some padding
+            p: 3,
           }}
           open={loading}
         >
@@ -535,114 +726,6 @@ function App() {
             {error}
           </Alert>
         </Snackbar>
-
-        {/* Deck Guide Display Section */}
-        {deckGuide && (
-          <Paper elevation={6} sx={{ p: { xs: 3, sm: 4 }, mt: 4 }}>
-            <Typography variant="h5" component="h2" sx={{ mb: 3, textAlign: 'center' }}>
-              Deck Guide Analysis
-            </Typography>
-            <Box sx={{ typography: 'body1', lineHeight: 1.7, color: 'text.primary' }}>
-              <ReactMarkdown
-                components={{
-                  h1: ({node, ...props}) => <Typography variant="h5" sx={{ mt: 4, mb: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 1, color: theme.palette.text.primary }} {...props} />,
-                  h2: ({node, ...props}) => <Typography variant="h6" sx={{ mt: 3, mb: 1.5, color: theme.palette.text.primary }} {...props} />,
-                  h3: ({node, ...props}) => <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, fontWeight: 'bold', color: theme.palette.text.primary }} {...props} />,
-                  p: ({node, ...props}) => <Typography variant="body1" sx={{ mb: 2, color: theme.palette.text.primary }} {...props} />,
-                  ul: ({node, ...props}) => <Box component="ul" sx={{ pl: 3, mb: 2, '& li': { mb: 0.5, color: theme.palette.text.primary } }} {...props} />,
-                  ol: ({node, ...props}) => <Box component="ol" sx={{ pl: 3, mb: 2, '& li': { mb: 0.5, color: theme.palette.text.primary } }} {...props} />,
-                  li: ({node, ...props}) => <Typography variant="body2" component="li" {...props} />,
-                  strong: ({node, ...props}) => <Box component="strong" sx={{ color: theme.palette.text.primary }} {...props} />,
-                  em: ({node, ...props}) => <Box component="em" sx={{ fontStyle: 'italic', color: theme.palette.text.secondary }} {...props} />,
-                  a: ({node, ...props}) => <a style={{ color: theme.palette.primary.main, textDecoration: 'underline' }} target="_blank" rel="noopener noreferrer" {...props} />, // Using primary for links
-                  code: ({node, inline, className, children, ...props}) => {
-                    return (
-                      <Box component="code" sx={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.05)', // Subtle dark background for code on light theme
-                        color: theme.palette.primary.main, // Primary color for code text
-                        px: 0.5,
-                        py: 0.2,
-                        borderRadius: 1,
-                        fontSize: '0.85em',
-                      }} {...props}>
-                        {children}
-                      </Box>
-                    );
-                  }
-                }}
-              >
-                {deckGuide}
-              </ReactMarkdown>
-            </Box>
-
-            {/* Cards in Deck Display */}
-            {cardData.length > 0 && (
-              <Box sx={{ mt: 6 }}>
-                <Typography variant="h5" component="h3" sx={{ mb: 3, textAlign: 'center' }}>
-                  Cards in Deck
-                </Typography>
-                <Grid container spacing={2} justifyContent="center">
-                  {cardData.map((card) => (
-                    <Grid item xs={12} sm={6} md={4} key={card.uniqueDisplayId}>
-                      <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
-                        {card.image_uris?.small ? (
-                          <Box
-                            component="img"
-                            src={card.image_uris.small}
-                            alt={card.name}
-                            sx={{
-                              width: '100%',
-                              maxWidth: 120,
-                              height: 'auto',
-                              borderRadius: 1,
-                              mb: 1.5,
-                              objectFit: 'contain',
-                            }}
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              // Safely get hex values for placeholder image using theme palette
-                              const bgColor = theme.palette.background.paper.replace('#', '');
-                              const textColor = theme.palette.text.secondary.replace('#', '');
-                              e.target.src = `https://placehold.co/120x168/${bgColor}/${textColor}?text=No+Image`;
-                            }}
-                          />
-                        ) : (
-                          <Box
-                            sx={{
-                              width: '100%',
-                              maxWidth: 120,
-                              height: 168, // Standard card aspect ratio
-                              backgroundColor: theme.palette.background.paper, // Use paper background for placeholder
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: theme.palette.text.secondary,
-                              fontSize: '0.75rem',
-                              textAlign: 'center',
-                              borderRadius: 1,
-                              mb: 1.5,
-                            }}
-                          >
-                            No Image Available
-                          </Box>
-                        )}
-                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
-                          {card.quantity}x {card.name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Mana: {card.mana_cost || 'N/A'}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Type: {card.type_line || 'N/A'}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )}
-          </Paper>
-        )}
       </Container>
     </ThemeProvider>
   );
